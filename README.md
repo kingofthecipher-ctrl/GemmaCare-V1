@@ -95,7 +95,7 @@ ollama pull gemma4:e4b
 ### 3. Clone and install GemmaCare
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/kingofthecipher-ctrl/GemmaCare-V1.git
 cd GemmaCare-V1
 
 # Install Node dependencies
@@ -161,7 +161,7 @@ ollama run gemma4:e4b "Say hello in 5 languages"
 ### Step 3 — Clone the repository
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/kingofthecipher-ctrl/GemmaCare-V1.git
 cd GemmaCare-V1
 ```
 
