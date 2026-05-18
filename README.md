@@ -512,10 +512,10 @@ GemmaCare is built on the shoulders of these excellent open-source projects and 
 
 ## License
 
-GemmaCare is released under the **MIT License**.
+GemmaCare is released under the **Apache License 2.0**.
 
 ```
-MIT License
+Apache License 2.0
 
 Copyright (c) 2026 Aislinn Phelan
 
