@@ -1,0 +1,1 @@
+ALTER TABLE `triageRecords` ADD `exportLanguage` varchar(10) DEFAULT 'en' NOT NULL;

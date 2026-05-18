@@ -1,0 +1,55 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: gemmacareV1-db
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: ${DB_NAME:-gemmacare}
+      MYSQL_USER: ${DB_USER:-gemmacare}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-gemmacare123}
+    ports:
+      - "3307:3306"
+    volumes:
+      - gemmacareV1-db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+    networks:
+      - gemmacareV1-network
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: gemcare-v1
+    container_name: gemmacareV1-app
+    environment:
+      NODE_ENV: production
+      PORT: 8080
+      DATABASE_URL: mysql://${DB_USER:-gemmacare}:${DB_PASSWORD:-gemmacare123}@db:3306/${DB_NAME:-gemmacare}
+      JWT_SECRET: ${JWT_SECRET:-gemmacare-v1-secret-change-in-prod}
+      VITE_APP_ID: ${VITE_APP_ID:-local-dev}
+      OAUTH_SERVER_URL: ${OAUTH_SERVER_URL:-http://localhost:8080}
+      VITE_OAUTH_PORTAL_URL: ${VITE_OAUTH_PORTAL_URL:-http://localhost:8080}
+      OWNER_OPEN_ID: ${OWNER_OPEN_ID:-local-owner-id}
+      OWNER_NAME: ${OWNER_NAME:-Local Owner}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-gemma4:e4b}
+      VITE_APP_TITLE: GemmaCare V1
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - gemmacareV1-network
+    restart: unless-stopped
+
+volumes:
+  gemmacareV1-db-data:
+    driver: local
+
+networks:
+  gemmacareV1-network:
+    driver: bridge
