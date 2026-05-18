@@ -6,6 +6,14 @@ GemmaCare is an open-source, multimodal clinical triage tool designed for health
 
 ---
 
+## Demo
+
+[![GemmaCare Demo Video](https://img.youtube.com/vi/CsrUpLWR6dY/maxresdefault.jpg)](https://youtu.be/CsrUpLWR6dY)
+
+*Click to watch the demo on YouTube*
+
+---
+
 ## Table of Contents
 
 1. [Overview](#overview)
@@ -43,7 +51,7 @@ GemmaCare processes patient information through a six-step AI pipeline:
 ### Minimum Hardware
 
 | Component | Minimum | Recommended |
-|-----------|---------|-------------|
+| --- | --- | --- |
 | CPU | 8-core x86-64 (e.g. Intel i5-12th gen) | 16-core or Apple Silicon M2+ |
 | RAM | 16 GB | 32 GB |
 | GPU | None required (CPU inference) | NVIDIA RTX 3080+ / Apple Silicon unified memory |
@@ -51,13 +59,12 @@ GemmaCare processes patient information through a six-step AI pipeline:
 | Network | Required for initial model download | Offline after first setup |
 
 > **Apple Silicon Note:** GemmaCare runs well on M1/M2/M3 MacBooks via Ollama's Metal backend. Inference is significantly faster than CPU-only x86.
-
 > **GPU Note:** An NVIDIA GPU with 10+ GB VRAM will dramatically accelerate inference. Ollama automatically uses CUDA if available.
 
 ### Software Prerequisites
 
 | Software | Version | Notes |
-|----------|---------|-------|
+| --- | --- | --- |
 | Node.js | 22.x LTS or higher | Required |
 | pnpm | 10.x | Installed automatically if missing |
 | Ollama | Latest | Required — runs Gemma 4 locally |
@@ -89,13 +96,12 @@ curl -fsSL https://ollama.com/install.sh | sh
 ```bash
 ollama pull gemma4:e4b
 ```
-
 > **Note:** The `gemma4:e4b` model is approximately 9 GB. Ensure you have sufficient disk space and a stable internet connection for the first pull.
 
 ### 3. Clone and install GemmaCare
 
 ```bash
-git clone https://github.com/kingofthecipher-ctrl/GemmaCare-V1.git
+git clone https://github.com/kingofthecipher-ctrl/GemmaCare-V1
 cd GemmaCare-V1
 
 # Install Node dependencies
@@ -161,7 +167,7 @@ ollama run gemma4:e4b "Say hello in 5 languages"
 ### Step 3 — Clone the repository
 
 ```bash
-git clone https://github.com/kingofthecipher-ctrl/GemmaCare-V1.git
+git clone https://github.com/kingofthecipher-ctrl/GemmaCare-V1
 cd GemmaCare-V1
 ```
 
@@ -185,14 +191,14 @@ cat .env
 ```
 
 Key variables:
-```env
+
+```
 DATABASE_URL=          # Empty = SQLite (auto-created at gemmacare.db)
 PORT=8080
 OLLAMA_BASE_URL=http://localhost:11434
 OLLAMA_MODEL=gemma4:e4b
 JWT_SECRET=gemmacare-v1-local-secret-change-in-prod
 ```
-
 > **Production:** Change `JWT_SECRET` to a strong random string before deploying publicly.
 
 ### Step 6 — Initialise the database
@@ -206,7 +212,7 @@ pnpm db:push
 This creates `gemmacare.db` in the project root with all required tables.
 
 **Optional — MySQL instead of SQLite:**
-```env
+```
 DATABASE_URL=mysql://user:password@localhost:3306/gemmacare
 ```
 
@@ -224,7 +230,7 @@ The app will be available at **http://localhost:8080**
 
 ### `.env` Reference
 
-```env
+```
 # ─── Database ──────────────────────────────────────────────────────────────────
 # Leave empty for SQLite (auto-created, zero setup, fully offline)
 # For MySQL: mysql://user:password@host:port/dbname
@@ -259,27 +265,32 @@ VITE_APP_TITLE=GemmaCare V1
 ## Running the App
 
 ### Development mode (with hot reload)
+
 ```bash
 pnpm dev
 ```
 
 ### Production build
+
 ```bash
 pnpm build
 pnpm start
 ```
 
 ### Docker (optional)
+
 ```bash
 docker-compose up --build
 ```
 
 ### Run tests
+
 ```bash
 pnpm test
 ```
 
 ### Check TypeScript
+
 ```bash
 pnpm check
 ```
@@ -289,17 +300,20 @@ pnpm check
 ## Features
 
 ### Multimodal Triage Input
+
 - **Audio** — Record patient audio directly in-browser or upload `.wav` / `.mp3`
 - **Image** — Upload medication labels, wound photos, or any clinically relevant image (`.jpg`, `.png`)
 - **Text** — Type or paste a patient description directly
 
 ### AI-Powered Analysis (Gemma 4)
+
 - Automatic audio transcription with language detection (40+ languages)
 - Vision analysis of medication labels and clinical photos
 - Dual-source synthesis when both audio and image are present
 - Structured clinical extraction: chief complaint, symptoms, urgency (1–5), confidence
 
 ### Medication Cross-Verification (4-Layer)
+
 1. **Name mismatch** — Are audio-mentioned and image-visible drugs the same?
 2. **Category check** — Is the drug class appropriate for the complaint?
 3. **Route check** — Does the delivery form make sense (oral vs. topical, etc.)?
@@ -308,11 +322,14 @@ pnpm check
 Critical mismatches halt the triage flow and require explicit clinician acknowledgment.
 
 ### Bilingual Patient Instructions
+
 When the patient and clinician speak different languages, two sections are generated:
+
 - **Section 1 (For the Clinician)** — Professional medical language in the clinician's language
 - **Section 2 (For the Patient)** — Simple, warm language in the patient's language
 
 ### Safety Guardrails
+
 - Persistent AI disclaimer on all triage views
 - Confidence score with colour-coded warnings
 - Mandatory safety notes for sepsis/meningitis antibiotic sequencing
@@ -321,17 +338,21 @@ When the patient and clinician speak different languages, two sections are gener
 - 20+ code-level hard-locks for life-threatening presentations (TIA, anaphylaxis, etc.)
 
 ### Demo Mode
+
 Three pre-loaded demonstration scenarios:
+
 - **Hindi** — Fever + Paracetamol label (multimodal, expected: Urgency 3/5)
 - **Spanish** — Chest/wound presentation (multimodal, expected: Urgency 4/5)
 - **Swahili** — Audio-only headache assessment (expected: Urgency 3/5)
 
 ### Session History
+
 - All triage records saved locally
 - Filter and sort by date, urgency, language
 - Re-display any past record in full
 
 ### Language Translation
+
 On-demand re-translation of clinical record fields and patient instructions to any of 60+ supported languages.
 
 ---
@@ -371,7 +392,7 @@ GemmaCare-V1/
 ### Technology Stack
 
 | Layer | Technology |
-|-------|-----------|
+| --- | --- |
 | Frontend | React 19 + TypeScript |
 | Styling | Tailwind CSS 4 + shadcn/ui components |
 | API layer | tRPC 11 (end-to-end type safety) |
@@ -389,7 +410,7 @@ GemmaCare-V1/
 GemmaCare uses a 1–5 urgency scale, calibrated against standard triage frameworks:
 
 | Level | Label | Response Time | Examples |
-|-------|-------|--------------|---------|
+| --- | --- | --- | --- |
 | 1 | Non-urgent | Routine | Paper cut, mild cold, medication refill |
 | 2 | Low | Within 24h | Mild UTI, low-grade fever in healthy adult |
 | 3 | Moderate | Within a few hours | Fever + headache (no red flags), wound infection |
@@ -397,9 +418,12 @@ GemmaCare uses a 1–5 urgency scale, calibrated against standard triage framewo
 | 5 | Emergency | Immediately | Stroke signs, anaphylaxis with airway, active seizure, meningism |
 
 **Key calibration rules:**
+
 - Fever + headache **alone** = **3**, regardless of whether the patient calls it "severe"
 - "Severe" as a pain intensity word is NOT itself a red flag — a second specific neurological sign (photophobia, neck stiffness, confusion) is required to reach Level 4
 - 20+ code-level hard-locks prevent under-triaging of life-threatening presentations
+
+> **Note on interoperability:** This scale runs 1 (least severe) to 5 (most severe). Many established clinical triage systems — including CTAS and ESI — run in the opposite direction, where 1 is the most critical. Standardization to align with existing clinical workflows is planned for a future release. If your system uses a different convention, feedback is welcome via the issue tracker.
 
 ---
 
@@ -470,10 +494,12 @@ Contributions and feedback welcome via the project issue tracker.
 GemmaCare is built on the shoulders of these excellent open-source projects and services:
 
 ### AI & Inference
+
 - **[Gemma 4](https://ai.google.dev/gemma)** by Google DeepMind — multimodal language model powering all audio transcription, vision analysis, and clinical reasoning
 - **[Ollama](https://ollama.com)** — local model runtime enabling private, offline-capable inference
 
 ### Frontend
+
 - **[React](https://react.dev)** (v19) — UI framework
 - **[TypeScript](https://www.typescriptlang.org)** — type-safe JavaScript
 - **[Tailwind CSS](https://tailwindcss.com)** (v4) — utility-first CSS framework
@@ -490,6 +516,7 @@ GemmaCare is built on the shoulders of these excellent open-source projects and 
 - **[Zod](https://zod.dev)** — schema validation
 
 ### Backend
+
 - **[Node.js](https://nodejs.org)** — JavaScript runtime
 - **[Express](https://expressjs.com)** (v4) — HTTP server framework
 - **[tRPC](https://trpc.io)** (v11) — end-to-end type-safe API layer
@@ -501,6 +528,7 @@ GemmaCare is built on the shoulders of these excellent open-source projects and 
 - **[dotenv](https://github.com/motdotla/dotenv)** — environment variable management
 
 ### Build Tooling
+
 - **[Vite](https://vitejs.dev)** (v7) — frontend build tool
 - **[esbuild](https://esbuild.github.io)** — server bundler
 - **[pnpm](https://pnpm.io)** — fast, disk-efficient package manager
@@ -515,27 +543,19 @@ GemmaCare is built on the shoulders of these excellent open-source projects and 
 GemmaCare is released under the **Apache License 2.0**.
 
 ```
-Apache License 2.0
+Copyright 2026 Aislinn Phelan
 
-Copyright (c) 2026 Aislinn Phelan
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+    http://www.apache.org/licenses/LICENSE-2.0
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 ```
 
 ---
