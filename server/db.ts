@@ -28,7 +28,7 @@ async function getMysqlDb() {
     try {
       _mysqlDb = drizzleMysql(ENV.databaseUrl);
     } catch (error) {
-      console.warn("[Database] MySQL connection failed:", error);
+      console.warn("[Database] MySQL connection failed");
       _mysqlDb = null;
     }
   }

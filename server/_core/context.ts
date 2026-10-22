@@ -1,5 +1,5 @@
 import type { CreateExpressContextOptions } from "@trpc/server/adapters/express";
-import type { User } from "../../drizzle/schema";
+import { parse } from "cookie";
 import { sdk } from "./sdk";
 import { ENV } from "./env";
 import { COOKIE_NAME } from "@shared/const";
@@ -8,20 +8,18 @@ import * as db from "../db";
 export type TrpcContext = {
   req: CreateExpressContextOptions["req"];
   res: CreateExpressContextOptions["res"];
-  user: User | null;
+  user: NonNullable<Awaited<ReturnType<typeof db.getUserByOpenId>>> | null;
 };
 
 export async function createContext(
-  opts: CreateExpressContextOptions
+  opts: Pick<CreateExpressContextOptions, "req" | "res">
 ): Promise<TrpcContext> {
-  let user: User | null = null;
+  let user: TrpcContext["user"] = null;
 
   // ── Step 1: try JWT cookie (works 100% offline — pure local crypto) ────────
   try {
     const raw = opts.req.headers.cookie ?? "";
-    const cookies = Object.fromEntries(
-      raw.split(";").map((c) => c.trim().split("=").map(decodeURIComponent))
-    );
+    const cookies = parse(raw);
     const token = cookies[COOKIE_NAME];
     if (token) {
       const session = await sdk.verifySession(token);
@@ -61,17 +59,8 @@ export async function createContext(
       });
       user = await db.getUserByOpenId(openId) ?? null;
     } catch {
-      // DB not ready yet — synthesise an in-memory user so the request proceeds
-      user = {
-        id: 1,
-        openId,
-        name,
-        email: "local@gemmacare.local",
-        loginMethod: "local",
-        role: "user",
-        createdAt: new Date(),
-        lastSignedIn: new Date(),
-      } as unknown as User;
+      // Never guess a persistent user ID when the database cannot verify it.
+      user = null;
     }
   }
 

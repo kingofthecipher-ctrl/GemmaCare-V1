@@ -1,7 +1,7 @@
 #!/bin/bash
 # ─────────────────────────────────────────────────────────────
 # GemmaCare V1 — Run WITHOUT Docker
-# Requires: Node 18+, pnpm, MySQL (or SQLite fallback), Ollama
+# Requires: Node 22.23.4 (audited baseline), pnpm, MySQL (or SQLite fallback), Ollama
 # ─────────────────────────────────────────────────────────────
 set -e
 
@@ -19,7 +19,7 @@ echo -e "${GREEN}✓ Node $(node -v)${NC}"
 # Check pnpm
 if ! command -v pnpm &>/dev/null; then
   echo -e "${YELLOW}Installing pnpm...${NC}"
-  npm install -g pnpm
+  npm install -g pnpm@10.34.5
 fi
 echo -e "${GREEN}✓ pnpm${NC}"
 
@@ -35,12 +35,12 @@ else
 fi
 
 # Create local .env if not present
-if [ ! -f .env.local ]; then
-cat > .env.local << 'ENVEOF'
+if [ ! -f .env ]; then
+cat > .env << 'ENVEOF'
 NODE_ENV=development
 PORT=8080
-DATABASE_URL=mysql://gemmacare:gemmacare123@localhost:3306/gemmacare
-JWT_SECRET=gemmacare-v1-local-secret
+DATABASE_URL=
+JWT_SECRET=
 VITE_APP_ID=local-dev
 OAUTH_SERVER_URL=http://localhost:8080
 VITE_OAUTH_PORTAL_URL=http://localhost:8080
@@ -50,7 +50,7 @@ OLLAMA_BASE_URL=http://localhost:11434
 OLLAMA_MODEL=gemma4:e4b
 VITE_APP_TITLE=GemmaCare V1
 ENVEOF
-echo -e "${GREEN}✓ Created .env.local${NC}"
+echo -e "${GREEN}✓ Created .env${NC}"
 fi
 
 # Install deps

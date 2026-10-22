@@ -12,6 +12,7 @@ import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { eq, desc } from "drizzle-orm";
 import { join } from "path";
+import { closeSync, openSync, chmodSync } from "node:fs";
 import {
   users, triageRecords, sessionHistory,
   type User, type InsertUser,
@@ -28,6 +29,9 @@ function getDb() {
   if (_db) return _db;
 
   console.log(`[SQLite] Creating local database at ${DB_PATH}`);
+  // New databases are private from creation; retain all existing data.
+  closeSync(openSync(DB_PATH, "a", 0o600));
+  chmodSync(DB_PATH, 0o600);
   _sqlite = new Database(DB_PATH);
 
   // Enable WAL mode for better concurrent read performance

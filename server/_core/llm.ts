@@ -1,5 +1,5 @@
-import { execSync } from "child_process";
-import { writeFileSync, readFileSync, unlinkSync, statSync } from "fs";
+import { execFileSync } from "child_process";
+import { writeFileSync, readFileSync, mkdtempSync, rmSync, statSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import { ENV } from "./env";
@@ -60,7 +60,7 @@ async function withRetry<T>(fn: () => Promise<T>, attempts = 3, delayMs = 1200):
       return await fn();
     } catch (e) {
       if (i === attempts - 1) throw e;
-      console.warn(`[Gemma] Attempt ${i + 1} failed, retrying in ${delayMs}ms…`, e);
+      console.warn(`[Gemma] Attempt ${i + 1} failed; retrying`);
       await sleep(delayMs);
     }
   }
@@ -78,38 +78,41 @@ function stripDataUri(b64: string): string {
   return b64.replace(/^data:[^,]+,/, "");
 }
 
-function convertToWav(audioBase64: string): string {
-  const ts   = Date.now();
-  const rand = Math.random().toString(36).slice(2);
-  const inPath  = join(tmpdir(), `gc_in_${ts}_${rand}`);
-  const outPath = join(tmpdir(), `gc_out_${ts}_${rand}.wav`);
+export function convertToWav(audioBase64: string): string {
+  const directory = mkdtempSync(join(tmpdir(), "gemmacare-audio-"));
+  const inPath = join(directory, "input");
+  const outPath = join(directory, "output.wav");
 
   try {
     const raw = stripDataUri(audioBase64);
-    writeFileSync(inPath, Buffer.from(raw, "base64"));
+    writeFileSync(inPath, Buffer.from(raw, "base64"), { mode: 0o600 });
 
     const inSize = statSync(inPath).size;
     if (inSize === 0) throw new Error("Audio buffer is empty — nothing was recorded");
 
-    // Capture stderr for diagnosis; don't suppress it
-    const log = execSync(
-      `ffmpeg -i "${inPath}" -ar 16000 -ac 1 -f wav "${outPath}" -y 2>&1 || true`,
-      { timeout: 30_000, encoding: "utf8" },
-    );
+    try {
+      execFileSync("ffmpeg", [
+        "-nostdin", "-hide_banner", "-loglevel", "error",
+        "-protocol_whitelist", "file,pipe",
+        "-format_whitelist", "wav,mp3,ogg,mov,matroska,webm,aac,flac",
+        "-i", inPath, "-ar", "16000", "-ac", "1", "-f", "wav", outPath, "-y",
+      ], { timeout: 30_000, stdio: ["ignore", "ignore", "pipe"], maxBuffer: 64 * 1024 });
+    } catch {
+      // Decoder errors may contain file contents/metadata supplied by a patient.
+      throw new Error("Audio conversion failed; use a supported audio recording");
+    }
 
     let outSize = 0;
     try { outSize = statSync(outPath).size; } catch { /* not created */ }
 
     if (outSize === 0) {
-      console.error(`[ffmpeg] Failed. Input ${inSize}B. Log:\n${log.slice(-600)}`);
       throw new Error(`ffmpeg produced empty output. Input size: ${inSize}B`);
     }
 
     console.log(`[ffmpeg] OK — ${inSize}B → ${outSize}B WAV`);
     return readFileSync(outPath).toString("base64");
   } finally {
-    try { unlinkSync(inPath);  } catch { /* ignore */ }
-    try { unlinkSync(outPath); } catch { /* ignore */ }
+    rmSync(directory, { recursive: true, force: true });
   }
 }
 
@@ -143,7 +146,7 @@ async function callOllama(params: InvokeParams, extraImages?: string[]): Promise
     body: JSON.stringify(body),
   });
 
-  if (!res.ok) throw new Error(`Ollama error ${res.status}: ${await res.text()}`);
+  if (!res.ok) throw new Error(`Ollama error ${res.status}`);
 
   const data = await res.json() as {
     message: { role: string; content: string };
@@ -204,7 +207,7 @@ Rules: valid JSON only, no markdown, no explanation, transcript written once in 
       }),
     });
 
-    if (!res.ok) throw new Error(`Ollama audio error ${res.status}: ${await res.text()}`);
+    if (!res.ok) throw new Error(`Ollama audio error ${res.status}`);
 
     const data = await res.json() as { message: { content: string } };
     const content = data.message?.content ?? "";
@@ -247,7 +250,7 @@ Be precise and concise.`,
         options: { temperature: 0.1, num_predict: 1024 },
       }),
     });
-    if (!res.ok) throw new Error(`Gemma vision error ${res.status}: ${await res.text()}`);
+    if (!res.ok) throw new Error(`Gemma vision error ${res.status}`);
     const data = await res.json() as { message: { content: string } };
     return data.message.content.trim();
   });

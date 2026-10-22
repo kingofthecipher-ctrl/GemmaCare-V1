@@ -1,19 +1,21 @@
 # ── Build stage ────────────────────────────────────────────
-FROM node:22-alpine AS builder
+FROM node:22.23.4-alpine AS builder
 
 WORKDIR /app
+
+RUN apk add --no-cache python3 make g++
 
 COPY package.json pnpm-lock.yaml ./
 COPY patches/ ./patches/
 
-RUN npm install -g pnpm && pnpm install --frozen-lockfile
+RUN npm install -g pnpm@10.34.5 && pnpm install --frozen-lockfile
 
 COPY . .
 
 RUN pnpm build && echo "Build output:" && ls -la dist/
 
 # ── Runtime stage ──────────────────────────────────────────
-FROM node:22-alpine
+FROM node:22.23.4-alpine
 
 # Install ffmpeg — converts browser audio (WebM/Opus, MP4/AAC)
 # to 16kHz mono WAV before sending to Gemma 4's audio encoder.
@@ -24,17 +26,21 @@ RUN apk add --no-cache ffmpeg \
 
 WORKDIR /app
 
-RUN npm install -g pnpm
+RUN npm install -g pnpm@10.34.5
 
 COPY package.json pnpm-lock.yaml ./
 COPY patches/ ./patches/
 
-RUN pnpm install --frozen-lockfile --prod
+RUN apk add --no-cache --virtual .build-deps python3 make g++ \
+ && pnpm install --frozen-lockfile --prod \
+ && apk del .build-deps
 
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/drizzle ./drizzle
 
 RUN echo "Runtime dist:" && ls -la dist/
+
+ENV NODE_ENV=production
 
 EXPOSE 8080
 

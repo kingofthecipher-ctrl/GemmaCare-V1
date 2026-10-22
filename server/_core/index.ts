@@ -8,10 +8,15 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { runMigrations } from "./migrate";
+import { accessBoundary, getAccessConfig } from "./security";
 
 async function startServer() {
   const app = express();
   const server = createServer(app);
+  const access = getAccessConfig();
+  app.disable("x-powered-by");
+  app.set("query parser", "simple");
+  app.use(accessBoundary(access));
 
   // ── CSP header — allow inline scripts/eval needed by the React bundle ──
   app.use((_req, res, next) => {
@@ -26,6 +31,9 @@ async function startServer() {
         "connect-src 'self' http://localhost:11434 http://host.docker.internal:11434",
         "font-src 'self' data:",
         "worker-src 'self' blob:",
+        "frame-ancestors 'none'",
+        "base-uri 'self'",
+        "object-src 'none'",
       ].join("; ")
     );
     next();
@@ -33,14 +41,13 @@ async function startServer() {
 
   // Increase payload limits for base64 audio/image uploads
   app.use(express.json({ limit: "150mb" }));
-  app.use(express.urlencoded({ limit: "150mb", extended: true }));
 
   // Run DB migrations automatically on startup
   try {
     await runMigrations();
     console.log("✅ Database migrations complete");
   } catch (err) {
-    console.error("⚠️  Migration warning (may already be applied):", String(err));
+    console.error("⚠️  Database migration failed; check database availability and configuration");
   }
 
   registerStorageProxy(app);
@@ -63,7 +70,7 @@ async function startServer() {
 
   const port = parseInt(process.env.PORT ?? "8080");
 
-  server.listen(port, "0.0.0.0", () => {
+  server.listen(port, access.host, () => {
     const B2 = "\x1b[38;5;39m";
     const T1 = "\x1b[38;5;43m";
     const G1 = "\x1b[38;5;78m";

@@ -65,7 +65,7 @@ GemmaCare processes patient information through a six-step AI pipeline:
 
 | Software | Version | Notes |
 | --- | --- | --- |
-| Node.js | 22.x LTS or higher | Required |
+| Node.js | 22.23.4 LTS | Audited baseline; see runtime notes below |
 | pnpm | 10.x | Installed automatically if missing |
 | Ollama | Latest | Required — runs Gemma 4 locally |
 | Docker | 24+ (optional) | For containerised deployment |
@@ -105,11 +105,12 @@ git clone https://github.com/kingofthecipher-ctrl/GemmaCare-V1
 cd GemmaCare-V1
 
 # Install Node dependencies
-npm install -g pnpm   # if pnpm is not already installed
-pnpm install
+npm install -g pnpm@10.34.5   # if pnpm is not already installed
+pnpm install --frozen-lockfile
 
-# Initialise the database (SQLite, zero configuration)
-pnpm db:push
+# Create private local configuration (do not overwrite an existing .env)
+cp -n .env.example .env
+# SQLite tables are created automatically on first local login.
 ```
 
 ### 4. Start the app
@@ -175,41 +176,27 @@ cd GemmaCare-V1
 
 ```bash
 # Install pnpm if you don't have it
-npm install -g pnpm
+npm install -g pnpm@10.34.5
 
 # Install project dependencies
-pnpm install
+pnpm install --frozen-lockfile
 ```
 
 ### Step 5 — Configure environment
 
-The `.env` file is pre-configured for local development with sensible defaults. For most users, no changes are needed:
+Create local configuration without overwriting existing settings:
 
 ```bash
-# View current config
-cat .env
+cp -n .env.example .env
 ```
 
-Key variables:
-
-```
-DATABASE_URL=          # Empty = SQLite (auto-created at gemmacare.db)
-PORT=8080
-OLLAMA_BASE_URL=http://localhost:11434
-OLLAMA_MODEL=gemma4:e4b
-JWT_SECRET=gemmacare-v1-local-secret-change-in-prod
-```
-> **Production:** Change `JWT_SECRET` to a strong random string before deploying publicly.
+The default listener is `127.0.0.1:8080`. A blank `JWT_SECRET` creates a fresh random session key on each startup; records remain intact, while browsers sign in again. For persistent sessions, put a newly generated random key of at least 32 characters in your private `.env`. Previously published example keys are rejected.
 
 ### Step 6 — Initialise the database
 
 GemmaCare uses SQLite by default — no database server required.
 
-```bash
-pnpm db:push
-```
-
-This creates `gemmacare.db` in the project root with all required tables.
+SQLite creates `gemmacare.db` and its tables automatically on first local login. Do not delete an existing database to upgrade the application. The `db:push` script is for the optional MySQL schema, not SQLite.
 
 **Optional — MySQL instead of SQLite:**
 ```
@@ -226,33 +213,71 @@ The app will be available at **http://localhost:8080**
 
 ---
 
+
+## Security and upgrades
+
+GemmaCare V1 is a **single-owner local application**. Everyone with access to its app or browser profile shares that owner account. `LOCAL_DEV_BYPASS_AUTH=false` requires a local session cookie; it does not provide individual clinician accounts. The external OAuth scaffold is disabled because it lacked a browser-bound state check.
+
+Use Node **22.23.4** (also recorded in `.nvmrc`) and pnpm **10.34.5** for the audited build. The Node baseline includes the [October 21, 2026 security release](https://nodejs.org/en/blog/vulnerability/october-2026-security-releases). Update to later supported security patches as they become available. Other Node major versions have not been validated by this audit.
+
+Local development binds to loopback. For a non-loopback production listener, set `HOST`, a random `APP_ACCESS_PASSWORD` of at least 16 characters, and `APP_ORIGIN` to the exact public HTTPS origin. The browser username is `gemmacare`. A TLS reverse proxy is required for remote use; proxy headers are not automatically trusted. Keep development servers private. HTTP Basic authentication protects the shared application boundary and does not provide per-user roles, rate limiting, or audit trails.
+
+Docker Compose publishes only `127.0.0.1:8080`, and MySQL has no host port. Before using `setup.sh`, set `APP_ACCESS_PASSWORD`, `DB_PASSWORD`, and `DB_ROOT_PASSWORD` in private `.env`. For an existing MySQL volume, retain its existing credentials; changing environment variables does not rotate passwords in that volume. Database passwords used in `DATABASE_URL` must be URL-encoded where necessary. No database reset, credential rotation, or data migration is part of this update.
+
+Before upgrading, stop your local app and retain a private backup of the database **including its WAL/SHM sidecars**, `.env`, and browser profile. Then replace source files and install with the committed lockfile. `START.sh` no longer rewrites existing database settings. Patient details and medication tracking remain in browser localStorage; SQLite/MySQL records and browser storage are not encrypted by this app. Protect the OS account, browser profile, backups, and model endpoint. Pointing `OLLAMA_BASE_URL` at another host sends clinical input there.
+
+Audio recordings are converted in private temporary directories, with playlist/network inputs blocked. Supported conversion formats include WAV, MP3, WebM, Ogg, MP4, AAC and FLAC. Keep FFmpeg and Ollama patched separately; their deployed versions cannot be established from this repository.
+
+See [the dated audit](SECURITY_AUDIT.md) for confirmed issues, fixes, validation, and limitations, and [the dependency assessment](SECURITY_ADVISORIES.md) for exact versions and official advisory links. The dependency audit still reports unresolved matches; this update does **not** claim a clean scan or production security certification.
+
 ## Configuration
 
 ### `.env` Reference
 
-```
+```dotenv
+# GemmaCare — Environment Configuration
+# Copy this file to .env and edit as needed:  cp .env.example .env
+
 # ─── Database ──────────────────────────────────────────────────────────────────
-# Leave empty for SQLite (auto-created, zero setup, fully offline)
+# Leave empty for SQLite (auto-created at gemmacare.db — zero setup, fully offline)
 # For MySQL: mysql://user:password@host:port/dbname
 DATABASE_URL=
 
 # ─── App ───────────────────────────────────────────────────────────────────────
 NODE_ENV=development
 PORT=8080
+HOST=127.0.0.1
 
 # ─── Security ──────────────────────────────────────────────────────────────────
-# Change this to a long random string in production
-JWT_SECRET=gemmacare-v1-local-secret-change-in-prod
+# Optional persistent session key; blank generates a fresh key each startup.
+# Existing databases and records are unaffected by a session-key change.
+# Generate one with: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+JWT_SECRET=
+# Required (16+ characters) when HOST is not loopback, including Docker.
+# Browser HTTP Basic username: gemmacare. Use HTTPS for any remote connection.
+APP_ACCESS_PASSWORD=
+# Set when using a named host or HTTPS reverse proxy (no trailing path).
+# APP_ORIGIN=https://gemmacare.example.org
 
 # ─── Auth ──────────────────────────────────────────────────────────────────────
+# Single-owner local mode. false requires the local session cookie, but does
+# not turn this application into a multi-user authentication system.
+# External OAuth callback is disabled until a browser-bound state flow exists.
 VITE_APP_ID=local-dev
 OAUTH_SERVER_URL=http://localhost:8080
 VITE_OAUTH_PORTAL_URL=http://localhost:8080
 OWNER_OPEN_ID=local-owner-id
 OWNER_NAME=Local Owner
-LOCAL_DEV_BYPASS_AUTH=true   # Set to false to require login
+LOCAL_DEV_BYPASS_AUTH=true
+
+# Docker only: set passwords in your private .env before first initialization.
+# For an existing volume, retain its current database credentials.
+# DB_ROOT_PASSWORD=
+# DB_PASSWORD=
 
 # ─── Ollama / Gemma 4 E4B ──────────────────────────────────────────────────────
+# Ollama must be running: https://ollama.com
+# Pull the model first: ollama pull gemma4:e4b
 OLLAMA_BASE_URL=http://localhost:11434
 OLLAMA_MODEL=gemma4:e4b
 
@@ -280,7 +305,7 @@ pnpm start
 ### Docker (optional)
 
 ```bash
-docker-compose up --build
+docker compose up --build
 ```
 
 ### Run tests
@@ -290,6 +315,8 @@ pnpm test
 ```
 
 ### Check TypeScript
+
+The security audit found existing type errors; this command is not currently a passing check. See `SECURITY_AUDIT.md`.
 
 ```bash
 pnpm check
@@ -454,8 +481,9 @@ Change `PORT=8080` in `.env` to another port, then restart.
 
 ```bash
 # Re-initialise the database
-rm -f gemmacare.db
-pnpm db:push
+# Stop the app first, then back up the database and its sidecars.
+# Retain the original files and investigate configuration/permissions.
+# Do not delete a database to resolve an application error.
 ```
 
 ### Inference is very slow

@@ -215,6 +215,7 @@ class SDKServer {
       if (
         !isNonEmptyString(openId) ||
         !isNonEmptyString(appId) ||
+        appId !== ENV.appId ||
         !isNonEmptyString(name)
       ) {
         console.warn("[Auth] Session payload missing required fields");
@@ -227,7 +228,7 @@ class SDKServer {
         name,
       };
     } catch (error) {
-      console.warn("[Auth] Session verification failed", String(error));
+      console.warn("[Auth] Session verification failed");
       return null;
     }
   }
@@ -283,7 +284,7 @@ class SDKServer {
         });
         user = await db.getUserByOpenId(session.openId);
       } catch (error) {
-        console.error("[Auth] Failed to create local user:", error);
+        console.error("[Auth] Failed to create local user");
         throw ForbiddenError("Failed to create user");
       }
     }
