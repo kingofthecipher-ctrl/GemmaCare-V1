@@ -50,7 +50,7 @@ success "Node $(node --version)"
 
 # ── 2. pnpm ───────────────────────────────────────────────────────────────────
 info "Checking pnpm..."
-command -v pnpm &>/dev/null || npm install -g pnpm
+command -v pnpm &>/dev/null || npm install -g pnpm@10.34.5
 success "pnpm $(pnpm --version)"
 
 # ── 3. ffmpeg ─────────────────────────────────────────────────────────────────
@@ -93,7 +93,7 @@ if [ ! -f .env ]; then
 DATABASE_URL=
 NODE_ENV=development
 PORT=8080
-JWT_SECRET=gemmacare-v1-local-secret
+JWT_SECRET=
 VITE_APP_ID=local-dev
 OAUTH_SERVER_URL=http://localhost:8080
 VITE_OAUTH_PORTAL_URL=http://localhost:8080
@@ -106,12 +106,6 @@ VITE_APP_TITLE=GemmaCare V1
 ENVEOF
   success ".env created"
 else
-  # Make sure OLLAMA_BASE_URL is localhost not docker
-  sed -i '' 's|host.docker.internal|localhost|g' .env 2>/dev/null || true
-  # Make sure DATABASE_URL is empty for local SQLite
-  grep -q "^DATABASE_URL=mysql" .env && \
-    sed -i '' 's|^DATABASE_URL=mysql.*|DATABASE_URL=|' .env && \
-    warn "DATABASE_URL cleared — using local SQLite instead" || true
   success ".env already exists"
 fi
 

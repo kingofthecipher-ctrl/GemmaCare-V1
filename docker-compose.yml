@@ -3,12 +3,10 @@ services:
     image: mysql:8.0
     container_name: gemmacareV1-db
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?Set DB_ROOT_PASSWORD in your private .env}
       MYSQL_DATABASE: ${DB_NAME:-gemmacare}
       MYSQL_USER: ${DB_USER:-gemmacare}
-      MYSQL_PASSWORD: ${DB_PASSWORD:-gemmacare123}
-    ports:
-      - "3307:3306"
+      MYSQL_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD; preserve existing-volume credentials}
     volumes:
       - gemmacareV1-db-data:/var/lib/mysql
     healthcheck:
@@ -27,8 +25,11 @@ services:
     environment:
       NODE_ENV: production
       PORT: 8080
-      DATABASE_URL: mysql://${DB_USER:-gemmacare}:${DB_PASSWORD:-gemmacare123}@db:3306/${DB_NAME:-gemmacare}
-      JWT_SECRET: ${JWT_SECRET:-gemmacare-v1-secret-change-in-prod}
+      HOST: 0.0.0.0
+      APP_ACCESS_PASSWORD: ${APP_ACCESS_PASSWORD:?Set APP_ACCESS_PASSWORD to at least 16 characters}
+      APP_ORIGIN: ${APP_ORIGIN:-http://localhost:8080}
+      DATABASE_URL: mysql://${DB_USER:-gemmacare}:${DB_PASSWORD:?Set DB_PASSWORD}@db:3306/${DB_NAME:-gemmacare}
+      JWT_SECRET: ${JWT_SECRET:-}
       VITE_APP_ID: ${VITE_APP_ID:-local-dev}
       OAUTH_SERVER_URL: ${OAUTH_SERVER_URL:-http://localhost:8080}
       VITE_OAUTH_PORTAL_URL: ${VITE_OAUTH_PORTAL_URL:-http://localhost:8080}
@@ -38,7 +39,7 @@ services:
       OLLAMA_MODEL: ${OLLAMA_MODEL:-gemma4:e4b}
       VITE_APP_TITLE: GemmaCare V1
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
     depends_on:
       db:
         condition: service_healthy

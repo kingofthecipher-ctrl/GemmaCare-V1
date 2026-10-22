@@ -11,6 +11,14 @@ build
 coverage
 .env.local
 .env.*.local
+.env
+.env.*
+*.db
+*.db-*
+*.sqlite
+*.sqlite-*
+*.sqlite3
+*.sqlite3-*
 docker-compose.yml
 Dockerfile
 setup.sh
