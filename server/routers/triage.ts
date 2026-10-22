@@ -685,12 +685,7 @@ Return ONLY valid JSON. No markdown.`;
 
     const fastComponentsPresent = [hasFace, hasArm, hasSpeech].filter(Boolean).length;
     if (fastComponentsPresent >= 2) {
-      console.warn(
-        "[Triage] ⚠️  FAST triad override: detected ≥2 FAST components in extracted symptoms — " +
-        "forcing urgency_level to 5 (TIA until proven otherwise). " +
-        `Original LLM score was ${parsed.urgency_level}. Components: ` +
-        `face=${hasFace}, arm=${hasArm}, speech=${hasSpeech}.`
-      );
+      console.warn("[Triage] Clinical safety rule applied");
       parsed.urgency_level = 5;
     }
   }
@@ -731,11 +726,7 @@ Return ONLY valid JSON. No markdown.`;
     const hasFeverWithRash    = FEVER_RASH.some(kw => purpuraText.includes(kw));
 
     if (hasNonBlanchingRash && hasFeverWithRash) {
-      console.warn(
-        "[Triage] ⚠️  Non-blanching purpuric rash + fever override: presumptive meningococcaemia / " +
-        "purpura fulminans / septic DIC — forcing urgency_level to 5. " +
-        `Original LLM score was ${parsed.urgency_level}.`
-      );
+      console.warn("[Triage] Clinical safety rule applied");
       parsed.urgency_level = 5;
     }
   }
@@ -777,11 +768,7 @@ Return ONLY valid JSON. No markdown.`;
     const hasAirwaySign     = AIRWAY_COMPROMISE.some(kw => anaphyText.includes(kw));
 
     if (hasAllergyCtx && hasAirwaySign) {
-      console.warn(
-        "[Triage] ⚠️  Anaphylaxis airway override: allergic reaction with airway compromise " +
-        "(throat closing / tongue swelling / stridor / breathing difficulty) — " +
-        `forcing urgency_level to 5. Original LLM score was ${parsed.urgency_level}.`
-      );
+      console.warn("[Triage] Clinical safety rule applied");
       parsed.urgency_level = 5;
     }
   }
@@ -832,10 +819,7 @@ Return ONLY valid JSON. No markdown.`;
         null;
 
       if (burnEscalationReason) {
-        console.warn(
-          `[Triage] ⚠️  Burn escalation override: ${burnEscalationReason} — ` +
-          `forcing urgency_level to 5. Original LLM score was ${parsed.urgency_level}.`
-        );
+        console.warn("[Triage] Clinical safety rule applied");
         parsed.urgency_level = 5;
       }
     }
@@ -871,11 +855,7 @@ Return ONLY valid JSON. No markdown.`;
     const hasSeizure   = SEIZURE.some(kw => eclampText.includes(kw));
 
     if (hasPregnancy && hasSeizure) {
-      console.warn(
-        "[Triage] ⚠️  Eclampsia override: seizure in pregnant patient — forcing urgency_level " +
-        `to 5 (presumptive eclampsia, dual maternal/fetal life-threat). ` +
-        `Original LLM score was ${parsed.urgency_level}.`
-      );
+      console.warn("[Triage] Clinical safety rule applied");
       parsed.urgency_level = 5;
     }
   }
@@ -916,11 +896,7 @@ Return ONLY valid JSON. No markdown.`;
     const hasHeavyBleeding  = HEAVY_BLEEDING.some(kw => aphText.includes(kw));
 
     if (hasPregnancyAPH && hasHeavyBleeding) {
-      console.warn(
-        "[Triage] ⚠️  Antepartum haemorrhage override: heavy vaginal bleeding in pregnant patient — " +
-        "forcing urgency_level to 5 (presumptive APH / placenta praevia / abruption). " +
-        `Original LLM score was ${parsed.urgency_level}.`
-      );
+      console.warn("[Triage] Clinical safety rule applied");
       parsed.urgency_level = 5;
     }
   }
@@ -994,10 +970,7 @@ Return ONLY valid JSON. No markdown.`;
     if (isCordProlapse) {
       // (A) Urgency override — only if LLM under-scored
       if ((parsed.urgency_level as number) < 5) {
-        console.warn(
-          "[Triage] ⚠️  Cord prolapse urgency override: " +
-          `forcing urgency_level to 5. Original LLM score was ${parsed.urgency_level}.`
-        );
+        console.warn("[Triage] Clinical safety rule applied");
         parsed.urgency_level = 5;
       }
 
@@ -1005,12 +978,7 @@ Return ONLY valid JSON. No markdown.`;
       // This is the critical fix: even when LLM scores 5 correctly, it may still
       // describe the wrong clinical picture (stump care). The content override
       // ensures Call 6 generates correct cord prolapse instructions.
-      console.warn(
-        "[Triage] ⚠️  Cord prolapse content override: correcting recommended_action and " +
-        `differential_note. Path: explicit=${hasExplicitCordProlapse}, ` +
-        `visible+ctx=${hasCordVisible && hasDeliveryCtx}. ` +
-        `LLM urgency was ${parsed.urgency_level}.`
-      );
+      console.warn("[Triage] Clinical safety rule applied");
       parsed.recommended_action =
         "OBSTETRIC EMERGENCY — CORD PROLAPSE. Immediate actions: " +
         "(1) Call for emergency obstetric team NOW. " +
@@ -1091,13 +1059,7 @@ Return ONLY valid JSON. No markdown.`;
     const hasActiveAMS   = ACTIVE_AMS.some(kw => odText.includes(kw));
 
     if (hasIngestionOD && hasActiveAMS) {
-      console.warn(
-        "[Triage] ⚠️  Overdose+AMS override: suspected medication/substance ingestion with active " +
-        "altered mental status — forcing urgency_level to 5 (unknown agent = worst-case toxidrome). " +
-        `Original LLM score was ${parsed.urgency_level}. ` +
-        `Ingestion match: ${INGESTION_OVERDOSE.find(kw => odText.includes(kw))}; ` +
-        `AMS match: ${ACTIVE_AMS.find(kw => odText.includes(kw))}.`
-      );
+      console.warn("[Triage] Clinical safety rule applied");
       parsed.urgency_level = 5;
     }
   }
@@ -1133,10 +1095,10 @@ Return ONLY valid JSON. No markdown.`;
       const hasResolvedSeizure = RESOLVED_SEIZURE_WORDS.some(kw => seizureText.includes(kw));
       const hasAnySeizureWord  = ["seizure", "convulsion", "epileptic", "fitting"].some(kw => seizureText.includes(kw));
       if (hasActiveSeizure && (parsed.urgency_level as number) < 5) {
-        console.warn(`[Triage] ⚠️  Active seizure override → 5. Original: ${parsed.urgency_level}.`);
+        console.warn("[Triage] Clinical safety rule applied");
         parsed.urgency_level = 5;
       } else if (!hasActiveSeizure && (hasResolvedSeizure || hasAnySeizureWord) && (parsed.urgency_level as number) < 4) {
-        console.warn(`[Triage] ⚠️  Resolved seizure floor → min 4. Original: ${parsed.urgency_level}.`);
+        console.warn("[Triage] Clinical safety rule applied");
         parsed.urgency_level = 4;
       }
     }
@@ -1170,7 +1132,7 @@ Return ONLY valid JSON. No markdown.`;
     const hasGasSource    = GAS_SOURCE.some(kw => coText.includes(kw));
     const hasSharedSymp   = SHARED_SYMPTOMS.some(kw => coText.includes(kw));
     if (hasExplicitCO || (hasMultiple && hasSharedSymp) || (hasGasSource && hasSharedSymp)) {
-      console.warn(`[Triage] ⚠️  Carbon monoxide override → 5 (explicit=${hasExplicitCO}, multi=${hasMultiple}, gas=${hasGasSource}). Original: ${parsed.urgency_level}.`);
+      console.warn("[Triage] Clinical safety rule applied");
       parsed.urgency_level = 5;
     }
   }
@@ -1198,7 +1160,7 @@ Return ONLY valid JSON. No markdown.`;
     const hasLimb        = LIMB_CONTEXT.some(kw => aliText.includes(kw));
     const ischaemiaSigns = ISCHAEMIA_SIGNS.filter(kw => aliText.includes(kw));
     if (hasExplicitALI || (hasLimb && ischaemiaSigns.length >= 2)) {
-      console.warn(`[Triage] ⚠️  Acute limb ischaemia override → 5 (signs: ${ischaemiaSigns.slice(0,3).join(",")}). Original: ${parsed.urgency_level}.`);
+      console.warn("[Triage] Clinical safety rule applied");
       parsed.urgency_level = 5;
     }
   }
@@ -1224,7 +1186,7 @@ Return ONLY valid JSON. No markdown.`;
       "obtunded", "lethargic", "not responding", "cannot rouse", "difficult to rouse",
     ];
     if (HYPO_CONTEXT.some(kw => bgText.includes(kw)) && AMS_HYPO.some(kw => bgText.includes(kw))) {
-      console.warn(`[Triage] ⚠️  Diabetic hypoglycaemia+AMS override → 5. Original: ${parsed.urgency_level}.`);
+      console.warn("[Triage] Clinical safety rule applied");
       parsed.urgency_level = 5;
     }
   }
@@ -1256,10 +1218,10 @@ Return ONLY valid JSON. No markdown.`;
     const hasRupture     = RUPTURE_SIGNS.some(kw => ectopicText.includes(kw));
     if (hasEctopicCtx) {
       if (hasRupture && (parsed.urgency_level as number) < 5) {
-        console.warn(`[Triage] ⚠️  Ectopic T1 (ruptured) override → 5. Original: ${parsed.urgency_level}.`);
+        console.warn("[Triage] Clinical safety rule applied");
         parsed.urgency_level = 5;
       } else if (!hasRupture && (parsed.urgency_level as number) < 4) {
-        console.warn(`[Triage] ⚠️  Ectopic T2 (unruptured) floor → min 4. Original: ${parsed.urgency_level}.`);
+        console.warn("[Triage] Clinical safety rule applied");
         parsed.urgency_level = 4;
       }
     }
@@ -1285,7 +1247,7 @@ Return ONLY valid JSON. No markdown.`;
     const hasFeverEpi  = FEVER_EPI.some(kw => epiText.includes(kw));
     const hasExplicitEpi = EPI_EXPLICIT.some(kw => epiText.includes(kw));
     if (hasExplicitEpi || (hasDrooling && hasStridor) || (hasDrooling && hasDysphagia && hasFeverEpi)) {
-      console.warn(`[Triage] ⚠️  Epiglottitis override → 5 (drooling=${hasDrooling}, stridor=${hasStridor}). Original: ${parsed.urgency_level}.`);
+      console.warn("[Triage] Clinical safety rule applied");
       parsed.urgency_level = 5;
     }
   }
@@ -1328,10 +1290,10 @@ Return ONLY valid JSON. No markdown.`;
     const hasImminentIntent = IMMINENT_INTENT.some(kw => siText.includes(kw));
     if (hasSuicidalBase) {
       if (hasPlanOrMeans && hasImminentIntent && (parsed.urgency_level as number) < 5) {
-        console.warn(`[Triage] ⚠️  Suicidal ideation imminent+plan+means override → 5. Original: ${parsed.urgency_level}.`);
+        console.warn("[Triage] Clinical safety rule applied");
         parsed.urgency_level = 5;
       } else if (!hasImminentIntent && (parsed.urgency_level as number) < 4) {
-        console.warn(`[Triage] ⚠️  Suicidal ideation floor → min 4. Original: ${parsed.urgency_level}.`);
+        console.warn("[Triage] Clinical safety rule applied");
         parsed.urgency_level = 4;
       }
     }
@@ -1361,7 +1323,7 @@ Return ONLY valid JSON. No markdown.`;
     const hasTearing   = TEARING_QUALITY.some(kw => aoText.includes(kw));
     const hasMigration = MIGRATION.some(kw => aoText.includes(kw));
     if (hasExplicit || (hasTearing && hasMigration) || hasTearing) {
-      console.warn(`[Triage] ⚠️  Aortic dissection override → 5 (explicit=${hasExplicit}, tearing=${hasTearing}). Original: ${parsed.urgency_level}.`);
+      console.warn("[Triage] Clinical safety rule applied");
       parsed.urgency_level = 5;
     }
   }
@@ -1392,7 +1354,7 @@ Return ONLY valid JSON. No markdown.`;
       hasKernig;
     if (isPartialTriad) {
       const sigCount = [hasNeckStiff, hasPhotophobiaM, hasFeverM, hasSevereHA, hasKernig].filter(Boolean).length;
-      console.warn(`[Triage] ⚠️  Meningism partial triad override → 5 (${sigCount} signs). Original: ${parsed.urgency_level}.`);
+      console.warn("[Triage] Clinical safety rule applied");
       parsed.urgency_level = 5;
     }
   }
@@ -1410,7 +1372,7 @@ Return ONLY valid JSON. No markdown.`;
     const ACUTE_ONSET = ["sudden", "acute", "severe", "sharp", "excruciating", "rapid onset"];
     if (TESTICULAR.some(kw => torsionText.includes(kw)) &&
         (ACUTE_ONSET.some(kw => torsionText.includes(kw)) || torsionText.includes("torsion"))) {
-      console.warn(`[Triage] ⚠️  Testicular torsion floor → min 4. Original: ${parsed.urgency_level}.`);
+      console.warn("[Triage] Clinical safety rule applied");
       parsed.urgency_level = 4;
     }
   }
@@ -1432,7 +1394,7 @@ Return ONLY valid JSON. No markdown.`;
                                "after epipen", "has resolved", "has improved", "now fine"];
     if (RESOLVED_ALLERGY.some(kw => biphasicText.includes(kw)) &&
         RESOLVED_MARKERS.some(kw => biphasicText.includes(kw))) {
-      console.warn(`[Triage] ⚠️  Resolved anaphylaxis biphasic floor → min 4. Original: ${parsed.urgency_level}.`);
+      console.warn("[Triage] Clinical safety rule applied");
       parsed.urgency_level = 4;
     }
   }
@@ -1462,7 +1424,7 @@ Return ONLY valid JSON. No markdown.`;
     const hasFeverRigors = FEVER_MARKERS.some(kw => rigorsText.includes(kw)) &&
                            RIGORS_MARKERS.some(kw => rigorsText.includes(kw));
     if (hasFeverRigors) {
-      console.warn(`[Triage] ⚠️  Fever+rigors floor → min 4 (sepsis pattern). Original: ${parsed.urgency_level}.`);
+      console.warn("[Triage] Clinical safety rule applied");
       parsed.urgency_level = 4;
     }
   }
@@ -1502,11 +1464,7 @@ Return ONLY valid JSON. No markdown.`;
       const HAS_FEVER    = ["fever", "febrile", "pyrexia", "high temperature"].some(kw => calibText.includes(kw));
       const HAS_HEADACHE = ["headache", "head pain", "head ache", "head heaviness", "head pressure"].some(kw => calibText.includes(kw));
       if (HAS_FEVER && HAS_HEADACHE) {
-        console.warn(
-          "[Triage] ⚠️  Calibration guard: urgency was 4 but only fever+headache without " +
-          "Level-4 neurological/systemic red flags — capping at 3. " +
-          "(Pain intensity words like 'severe' are NOT red flags.)"
-        );
+        console.warn("[Triage] Clinical safety rule applied");
         parsed.urgency_level = 3;
       }
     }
@@ -1539,7 +1497,7 @@ Return ONLY valid JSON. No markdown.`;
     ];
     const FEVER_INFANT = ["fever", "febrile", "high temperature", "pyrexia", "high fever", "temperature"];
     if (INFANT_YOUNG.some(kw => infantText.includes(kw)) && FEVER_INFANT.some(kw => infantText.includes(kw))) {
-      console.warn(`[Triage] ⚠️  Infant <3mo fever floor → min 4. Original: ${parsed.urgency_level}.`);
+      console.warn("[Triage] Clinical safety rule applied");
       parsed.urgency_level = 4;
     }
   }
@@ -1581,11 +1539,7 @@ Return ONLY valid JSON. No markdown.`;
     const hasPartialResp  = PARTIAL_RESPONSE.some(kw => respText.includes(kw));
 
     if (hasSevereResp && hasPartialResp) {
-      console.warn(
-        "[Triage] ⚠️  Respiratory partial-response floor: severe respiratory presentation " +
-        "with partial treatment response detected — raising urgency_level to minimum 4. " +
-        `Original LLM score was ${parsed.urgency_level}.`
-      );
+      console.warn("[Triage] Clinical safety rule applied");
       parsed.urgency_level = 4;
     }
   }
@@ -1649,10 +1603,7 @@ Return ONLY valid JSON. No markdown.`;
         null;
 
       if (cardioReason) {
-        console.warn(
-          `[Triage] ⚠️  Cardiac demographic floor: ${cardioReason} — ` +
-          `raising urgency_level to minimum 4. Original LLM score was ${parsed.urgency_level}.`
-        );
+        console.warn("[Triage] Clinical safety rule applied");
         parsed.urgency_level = 4;
       }
     }
@@ -1724,10 +1675,7 @@ Return ONLY valid JSON. No markdown.`;
       null;
 
     if (ocularReason) {
-      console.warn(
-        `[Triage] ⚠️  Ocular emergency override: ${ocularReason} — ` +
-        `forcing urgency_level to 5. Original LLM score was ${parsed.urgency_level}.`
-      );
+      console.warn("[Triage] Clinical safety rule applied");
       parsed.urgency_level = 5;
     }
   }
@@ -1793,18 +1741,10 @@ Return ONLY valid JSON. No markdown.`;
       const hasAnySymptom = ANY_SYMPTOM.some(kw => bpText.includes(kw));
 
       if (hasEndOrgan && (parsed.urgency_level as number) < 5) {
-        console.warn(
-          `[Triage] ⚠️  Hypertensive emergency override: BP ${sbp ?? "?"}/${dbp ?? "?"} mmHg ` +
-          `with end-organ damage markers — forcing urgency_level to 5. ` +
-          `Original LLM score was ${parsed.urgency_level}.`
-        );
+        console.warn("[Triage] Clinical safety rule applied");
         parsed.urgency_level = 5;
       } else if (hasAnySymptom && (parsed.urgency_level as number) < 4) {
-        console.warn(
-          `[Triage] ⚠️  Hypertensive urgency floor: BP ${sbp ?? "?"}/${dbp ?? "?"} mmHg ` +
-          `with symptoms but no confirmed end-organ damage — raising urgency_level to minimum 4. ` +
-          `Original LLM score was ${parsed.urgency_level}.`
-        );
+        console.warn("[Triage] Clinical safety rule applied");
         parsed.urgency_level = 4;
       }
     }
@@ -1847,11 +1787,7 @@ Return ONLY valid JSON. No markdown.`;
     const hasFever          = FEVER_CHILD.some(kw => paedText.includes(kw));
 
     if (isChildContext && isInconsolable && hasFever) {
-      console.warn(
-        "[Triage] ⚠️  Paediatric inconsolable fever floor: inconsolable child with high fever " +
-        "detected — raising urgency_level to minimum 4 (serious bacterial infection cannot be " +
-        `excluded without urgent evaluation). Original LLM score was ${parsed.urgency_level}.`
-      );
+      console.warn("[Triage] Clinical safety rule applied");
       parsed.urgency_level = 4;
     }
   }
@@ -1903,20 +1839,11 @@ Return ONLY valid JSON. No markdown.`;
     if (hasRenalContext) {
       // Tier 1: septic obstruction → force 5
       if (hasSepticMarker && (parsed.urgency_level as number) < 5) {
-        console.warn(
-          "[Triage] ⚠️  Renal colic Tier 1 override: flank/renal pain with fever/rigors/anuria — " +
-          `forcing urgency_level to 5 (septic obstructive uropathy). ` +
-          `Original LLM score was ${parsed.urgency_level}.`
-        );
+        console.warn("[Triage] Clinical safety rule applied");
         parsed.urgency_level = 5;
       // Tier 2: severe pain with pacing sign → floor 4
       } else if ((hasSeverePain || hasPacingSign) && (parsed.urgency_level as number) < 4) {
-        console.warn(
-          "[Triage] ⚠️  Renal colic Tier 2 floor: severe renal/flank pain" +
-          (hasPacingSign ? " with pacing/restlessness sign" : "") +
-          " — raising urgency_level to minimum 4 (urgent analgesia + obstruction imaging required). " +
-          `Original LLM score was ${parsed.urgency_level}.`
-        );
+        console.warn("[Triage] Clinical safety rule applied");
         parsed.urgency_level = 4;
       }
     }
@@ -1976,19 +1903,11 @@ Return ONLY valid JSON. No markdown.`;
     if (isElderly && hasConfusion && hasFever) {
       if (hasHemodynamic && (parsed.urgency_level as number) < 5) {
         // Tier 1: hemodynamic compromise → force 5
-        console.warn(
-          "[Triage] ⚠️  Geriatric AMS Tier 1 override: elderly patient with confusion + fever + " +
-          "hemodynamic compromise — forcing urgency_level to 5 (presumptive septic shock / severe " +
-          `CNS infection). Original LLM score was ${parsed.urgency_level}.`
-        );
+        console.warn("[Triage] Clinical safety rule applied");
         parsed.urgency_level = 5;
       } else if ((parsed.urgency_level as number) < 4) {
         // Tier 2: confusion + fever in elderly, no confirmed shock → floor 4
-        console.warn(
-          "[Triage] ⚠️  Geriatric AMS Tier 2 floor: elderly patient with new confusion + fever — " +
-          "raising urgency_level to minimum 4 (geriatric decompensation risk, sepsis cannot be " +
-          `excluded without urgent workup). Original LLM score was ${parsed.urgency_level}.`
-        );
+        console.warn("[Triage] Clinical safety rule applied");
         parsed.urgency_level = 4;
       }
     }
@@ -2045,19 +1964,13 @@ Return ONLY valid JSON. No markdown.`;
     if (hasOrthopnea && hasCardiacCtx) {
       if (hasFlashMarkers && (parsed.urgency_level as number) < 5) {
         // Tier 1: flash oedema / cardiogenic shock markers → force 5
-        console.warn(
-          "[Triage] ⚠️  ADHF Tier 1 override: orthopnea + cardiac history + confirmed flash/shock " +
-          `markers — forcing urgency_level to 5. Original LLM score was ${parsed.urgency_level}.`
-        );
+        console.warn("[Triage] Clinical safety rule applied");
         parsed.urgency_level = 5;
       } else if (!hasFlashMarkers && (parsed.urgency_level as number) !== 4) {
         // Tier 2: orthopnea + cardiac, no confirmed shock → CLAMP to exactly 4.
         // Bidirectional: raises from 3, lowers from 5.
         // A patient who can describe their symptoms is not in a resus emergency.
-        console.warn(
-          "[Triage] ⚠️  ADHF Tier 2 clamp: orthopnea + cardiac history, no confirmed flash/shock — " +
-          `clamping urgency_level to exactly 4. Original LLM score was ${parsed.urgency_level}.`
-        );
+        console.warn("[Triage] Clinical safety rule applied");
         parsed.urgency_level = 4;
       }
     }
@@ -2113,7 +2026,7 @@ async function runSafetyLayer(
       description: parsed.description ?? `${layer} flagged`,
     }];
   } catch (e) {
-    console.warn(`[MedSafety] Layer ${layer} failed:`, e);
+    console.warn("[Triage] Optional processing stage failed");
     return [{
       layer,
       severity: "warning",
@@ -2209,7 +2122,7 @@ Return ONLY JSON: {"conflict": true|false, "severity": "warning"|"critical", "de
     clinicianSummary = conflicts.map(c => c.description).join("; ");
   }
 
-  console.log(`[MedSafety] ${conflicts.length} conflict(s) found — severity: ${overallSeverity}`);
+  console.log("[Triage] Processing stage completed");
   return { safe: overallSeverity === "none", conflicts, overallSeverity, clinicianSummary };
 }
 
@@ -2234,10 +2147,10 @@ function injectCrisisLinesIfNeeded(
     );
     if (!hasCrisis) return instructions;
     const crisisBlock = formatCrisisBlock(patientLangCode);
-    console.warn(`[Triage] ⚠️  Psychiatric crisis detected — injecting crisis lines for lang="${patientLangCode}"`);
+    console.warn("[Triage] Optional processing stage failed");
     return crisisBlock + instructions;
   } catch (err) {
-    console.error("[Triage] Crisis line injection failed (non-fatal):", err);
+    console.error("[Triage] Processing stage failed");
     return instructions;
   }
 }
@@ -2384,7 +2297,7 @@ export const triageRouter = router({
 
   processTriage: protectedProcedure
     .input(z.object({
-      jobId:            z.string().optional(),
+      jobId:            z.string().max(128).regex(/^[A-Za-z0-9_-]+$/).optional(),
       audioBase64:      z.string().optional(),
       audioMimeType:    z.string().default("audio/wav"),
       imageBase64:      z.string().optional(),
@@ -2401,7 +2314,7 @@ export const triageRouter = router({
 
         // Helper: emit step to SSE subscribers (no-op if no client is listening)
         const emit = (stepId: string) => {
-          if (input.jobId) emitTriageProgress(input.jobId, stepId);
+          if (input.jobId) emitTriageProgress(input.jobId, stepId, ctx.user.id);
         };
 
         if (!hasAudio && !hasImage) {
@@ -2420,7 +2333,7 @@ export const triageRouter = router({
           transcript           = result.transcript;
           detectedLanguage     = result.detectedLanguage;
           detectedLanguageCode = result.languageCode;
-          console.log(`[Triage] Call 1 done — lang: ${detectedLanguage} (${detectedLanguageCode})`);
+          console.log("[Triage] Processing stage completed");
         } else if (transcript) {
           // Text was typed — detect its language so extraction has a hint
           emit("langdetect");
@@ -2436,9 +2349,9 @@ export const triageRouter = router({
             const langParsed = JSON.parse(langRes.choices[0]?.message?.content ?? "{}");
             detectedLanguage     = langParsed.language_name  ?? undefined;
             detectedLanguageCode = langParsed.language_code  ?? undefined;
-            console.log(`[Triage] Call 1 done — detected: ${detectedLanguage} (${detectedLanguageCode})`);
+            console.log("[Triage] Processing stage completed");
           } catch {
-            console.warn("[Triage] Language detection failed — proceeding without hint");
+            console.warn("[Triage] Optional processing stage failed");
           }
         }
 
@@ -2494,7 +2407,7 @@ export const triageRouter = router({
           imageMedication,
           clinicalSummary,
         });
-        console.log(`[Triage] Call 5 done — severity: ${safety.overallSeverity}`);
+        console.log("[Triage] Processing stage completed");
 
         // Critical conflicts halt triage for clinician review
         if (safety.overallSeverity === "critical") {
@@ -2601,7 +2514,7 @@ export const triageRouter = router({
           chiefComplaint:   extraction.chief_complaint,
         });
 
-        console.log("[Triage] Done — record", triageRecord.id);
+        console.log("[Triage] Processing stage completed");
 
         emit("done");
         return {
@@ -2635,7 +2548,7 @@ export const triageRouter = router({
         };
 
       } catch (error) {
-        console.error("Triage error:", error);
+        console.error("[Triage] Processing stage failed");
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to process triage", cause: error });
       }
     }),
@@ -2838,7 +2751,7 @@ Keep medical terms accurate. Return nothing but the JSON object.`;
           recommendedAction: parsed.recommendedAction || recommendedAction,
         };
       } catch (e) {
-        console.error("[translateClinicalRecord] Failed:", e);
+        console.error("[Triage] Processing stage failed");
         // Graceful fallback — return originals untranslated
         return { chiefComplaint, symptoms, recommendedAction };
       }
